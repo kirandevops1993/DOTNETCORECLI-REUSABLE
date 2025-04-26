@@ -55,27 +55,27 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore NuGet packages (if restore command)
+      - name: Restore NuGet packages
         if: ${{ inputs.command == 'restore' }}
         run: |
-          dotnet restore ${{ inputs.projects }} ${{ inputs.restoreArguments }} --configfile ${{ inputs.nugetConfigPath }}
+          dotnet restore ${{ inputs.projects }} --configfile ${{ inputs.nugetConfigPath }}
 
-      - name: Build Project (if build command)
+      - name: Build Project
         if: ${{ inputs.command == 'build' }}
         run: |
           dotnet build ${{ inputs.projects }} ${{ inputs.arguments }}
 
-      - name: Run Tests (if test command)
+      - name: Run Tests
         if: ${{ inputs.command == 'test' }}
         run: |
           dotnet test ${{ inputs.projects }} ${{ inputs.arguments }} --logger trx --results-directory $(System.DefaultWorkingDirectory)/TestResults
 
-      - name: Pack (if pack command)
+      - name: Pack
         if: ${{ inputs.command == 'pack' }}
         run: |
           dotnet pack ${{ inputs.packagesToPack }} --configuration ${{ inputs.configuration }}
 
-      - name: Push NuGet Package (if push command)
+      - name: Push NuGet Package
         if: ${{ inputs.command == 'push' }}
         env:
           NUGET_API_KEY: ${{ inputs.publishFeedCredentials }}
