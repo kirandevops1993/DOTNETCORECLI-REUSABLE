@@ -1,4 +1,4 @@
-name: Reusable .NET Workflow
+name: Reusable Dotnet Workflow
 
 on:
   workflow_call:
@@ -12,13 +12,10 @@ on:
       arguments:
         required: false
         type: string
-      restoreArguments:
+      feedsToUse:
         required: false
         type: string
-      publishTestResults:
-        required: false
-        type: boolean
-      testRunTitle:
+      nugetConfigPath:
         required: false
         type: string
       packagesToPack:
@@ -36,12 +33,6 @@ on:
       publishFeedCredentials:
         required: false
         type: string
-      feedsToUse:
-        required: false
-        type: string
-      nugetConfigPath:
-        required: false
-        type: string
 
 jobs:
   dotnet:
@@ -49,35 +40,34 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore NuGet packages
-        if: ${{ inputs.command == 'restore' }}
+      - name: Run dotnet ${{ inputs.command }}
         run: |
-          dotnet restore ${{ inputs.projects }} --configfile ${{ inputs.nugetConfigPath }}
-
-      - name: Build Project
-        if: ${{ inputs.command == 'build' }}
-        run: |
-          dotnet build ${{ inputs.projects }} ${{ inputs.arguments }}
-
-      - name: Run Tests
-        if: ${{ inputs.command == 'test' }}
-        run: |
-          dotnet test ${{ inputs.projects }} ${{ inputs.arguments }} --logger trx --results-directory $(System.DefaultWorkingDirectory)/TestResults
-
-      - name: Pack
-        if: ${{ inputs.command == 'pack' }}
-        run: |
-          dotnet pack ${{ inputs.packagesToPack }} --configuration ${{ inputs.configuration }}
-
-      - name: Push NuGet Package
-        if: ${{ inputs.command == 'push' }}
-        env:
-          NUGET_API_KEY: ${{ inputs.publishFeedCredentials }}
-        run: |
-          dotnet nuget push "${{ inputs.packagesToPush }}" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json"
+          CMD="${{ inputs.command }}"
+          
+          if [ "$CMD" = "restore" ]; then
+            dotnet restore "${{ inputs.projects }}" --configfile "${{ inputs.nugetConfigPath }}"
+          
+          elif [ "$CMD" = "build" ]; then
+            dotnet build "${{ inputs.projects }}" ${{ inputs.arguments }}
+          
+          elif [ "$CMD" = "test" ]; then
+            dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} --logger trx
+            
+          elif [ "$CMD" = "pack" ]; then
+            dotnet pack ${{ inputs.packagesToPack }} --configuration ${{ inputs.configuration }} -o ./nupkgs
+            
+          elif [ "$CMD" = "push" ]; then
+            dotnet nuget push "${{ inputs.packagesToPush }}" \
+              --api-key ${{ inputs.publishFeedCredentials }} \
+              --source "https://api.nuget.org/v3/index.json"
+          
+          else
+            echo "Unsupported command: $CMD"
+            exit 1
+          fi
