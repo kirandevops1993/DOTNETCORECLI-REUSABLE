@@ -1,0 +1,83 @@
+name: Reusable .NET Workflow
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        required: true
+        type: string
+      projects:
+        required: false
+        type: string
+      arguments:
+        required: false
+        type: string
+      restoreArguments:
+        required: false
+        type: string
+      publishTestResults:
+        required: false
+        type: boolean
+      testRunTitle:
+        required: false
+        type: string
+      packagesToPack:
+        required: false
+        type: string
+      configuration:
+        required: false
+        type: string
+      packagesToPush:
+        required: false
+        type: string
+      nuGetFeedType:
+        required: false
+        type: string
+      publishFeedCredentials:
+        required: false
+        type: string
+      feedsToUse:
+        required: false
+        type: string
+      nugetConfigPath:
+        required: false
+        type: string
+
+jobs:
+  dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore NuGet packages (if restore command)
+        if: ${{ inputs.command == 'restore' }}
+        run: |
+          dotnet restore ${{ inputs.projects }} ${{ inputs.restoreArguments }} --configfile ${{ inputs.nugetConfigPath }}
+
+      - name: Build Project (if build command)
+        if: ${{ inputs.command == 'build' }}
+        run: |
+          dotnet build ${{ inputs.projects }} ${{ inputs.arguments }}
+
+      - name: Run Tests (if test command)
+        if: ${{ inputs.command == 'test' }}
+        run: |
+          dotnet test ${{ inputs.projects }} ${{ inputs.arguments }} --logger trx --results-directory $(System.DefaultWorkingDirectory)/TestResults
+
+      - name: Pack (if pack command)
+        if: ${{ inputs.command == 'pack' }}
+        run: |
+          dotnet pack ${{ inputs.packagesToPack }} --configuration ${{ inputs.configuration }}
+
+      - name: Push NuGet Package (if push command)
+        if: ${{ inputs.command == 'push' }}
+        env:
+          NUGET_API_KEY: ${{ inputs.publishFeedCredentials }}
+        run: |
+          dotnet nuget push "${{ inputs.packagesToPush }}" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json"
