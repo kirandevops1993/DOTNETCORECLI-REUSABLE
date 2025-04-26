@@ -30,9 +30,6 @@ on:
       nuGetFeedType:
         required: false
         type: string
-      publishFeedUrl:
-        required: false
-        type: string
 
 jobs:
   dotnet:
@@ -58,13 +55,13 @@ jobs:
           
           elif [ "$CMD" = "test" ]; then
             dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} --logger trx
-            
+          
           elif [ "$CMD" = "pack" ]; then
             dotnet pack ${{ inputs.packagesToPack }} --configuration ${{ inputs.configuration }} -o ./nupkgs
           
           elif [ "$CMD" = "push" ]; then
             dotnet nuget push "${{ inputs.packagesToPush }}" \
-              --source "${{ inputs.publishFeedUrl }}"
+              --source "https://api.nuget.org/v3/index.json"
           
           else
             echo "Unsupported command: $CMD"
